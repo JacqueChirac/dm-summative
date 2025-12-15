@@ -1,1 +1,1 @@
-cd interactive-model/neon/data_management
+cd dm-summative
