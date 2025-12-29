@@ -452,6 +452,7 @@ export const electionResults = pgTable('election_results', {
 		.notNull()
 		.references(() => constituencies.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
 	repOrder: integer('rep_order').notNull().default(1), // Redistribution order (1 = original, 2 = redistribution)
+	isByElection: boolean('is_by_election').notNull().default(false), // TRUE for by-elections, FALSE for general elections
 	totalVotes: integer('total_votes').notNull(),
 	eligibleVoters: integer('eligible_voters'),
 	rejectedBallots: integer('rejected_ballots'), // Rejected/spoiled ballots
