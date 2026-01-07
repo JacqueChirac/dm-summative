@@ -22,7 +22,7 @@ def filter_demographics_to_csv(
         output_file: Output CSV filename (auto-generated if None)
     """
     if output_file is None:
-        output_file = f"filtered_{table_name}.csv"
+        output_file = f"../source/filtered_{table_name}.csv"
 
     conn = psycopg2.connect(CONNECTION_STRING)
     cur = conn.cursor()

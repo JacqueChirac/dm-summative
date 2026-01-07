@@ -17,7 +17,7 @@ from openpyxl.utils import get_column_letter
 CONNECTION_STRING = "postgresql://neondb_owner:npg_nDCY0KAWtN3z@ep-patient-night-a5t2b28c-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
 
-def load_cpc_votes(excel_file="cpc_votes_by_election.xlsx"):
+def load_cpc_votes(excel_file="../source/cpc_votes_by_election.xlsx"):
     """Load CPC vote data from Excel file."""
     df = pd.read_excel(excel_file)
     
@@ -166,8 +166,11 @@ def calculate_all_correlations(merged_df, category_info):
     return df
 
 
-def create_excel_report(results_df, output_file="correlation_report.xlsx"):
+def create_excel_report(results_df, output_file="output/correlation_report.xlsx"):
     """Create professional Excel report with multiple sheets."""
+    
+    import os
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
     
     wb = Workbook()
     
@@ -401,8 +404,11 @@ def create_visualizations(results_df):
     plt.suptitle("Demographics Most Correlated with CPC Vote Change (2021→2025)", 
                  fontsize=14, fontweight="bold", y=1.02)
     plt.tight_layout()
-    plt.savefig("top_correlations.png", dpi=150, bbox_inches="tight")
-    print(f"✅ Saved visualization to top_correlations.png")
+    
+    import os
+    os.makedirs("output", exist_ok=True)
+    plt.savefig("output/top_correlations.png", dpi=150, bbox_inches="tight")
+    print(f"✅ Saved visualization to output/top_correlations.png")
     plt.show()
 
 

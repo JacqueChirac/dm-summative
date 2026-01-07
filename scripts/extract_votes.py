@@ -13,7 +13,7 @@ except ImportError:
 CONNECTION_STRING = "postgresql://neondb_owner:npg_nDCY0KAWtN3z@ep-patient-night-a5t2b28c-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
 
-def extract_cpc_votes(output_file="cpc_votes_by_election.xlsx"):
+def extract_cpc_votes(output_file="../source/cpc_votes_by_election.xlsx"):
     """
     Extract CPC (Conservative Party) votes for 2019, 2021, and 2025 federal elections.
     
@@ -281,7 +281,7 @@ def extract_cpc_votes(output_file="cpc_votes_by_election.xlsx"):
     return constituency_data
 
 
-def extract_cpc_votes_csv(output_file="cpc_votes_by_election.csv"):
+def extract_cpc_votes_csv(output_file="../source/cpc_votes_by_election.csv"):
     """
     CSV alternative if Excel isn't available.
     Same data, simpler format.

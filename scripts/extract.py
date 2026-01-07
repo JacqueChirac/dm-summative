@@ -15,7 +15,7 @@ except ImportError:
 CONNECTION_STRING = "postgresql://neondb_owner:npg_nDCY0KAWtN3z@ep-patient-night-a5t2b28c-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
 
-def extract_constituency_demographics(characteristics_ids, output_file="filtered_demographics.xlsx"):
+def extract_constituency_demographics(characteristics_ids, output_file="../source/filtered_demographics.xlsx"):
     """
     Extract constituency-level demographics by characteristics_id from Neon database.
     
