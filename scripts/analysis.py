@@ -318,7 +318,7 @@ def create_scatter_plots(merged_df, output_file="output/correlation_plots.png"):
 def create_individual_scatter_plots(merged_df, correlation_results, output_folder="output/top_correlations"):
     """
     Create individual scatter plots for top 10 and bottom 10 demographics by absolute r score.
-    Saves each plot as a separate image file.
+    Saves each plot as a separate image file with full 3-level hierarchy in title.
     """
     os.makedirs(output_folder, exist_ok=True)
     
@@ -331,9 +331,14 @@ def create_individual_scatter_plots(merged_df, correlation_results, output_folde
     
     for idx, row in top_20_by_abs.iterrows():
         char_id = row["characteristics_id"]
-        label = row["category"]
         r_value = row["pearson_r"]
         p_value = row["pearson_p"]
+        
+        # Get all 3 levels of category hierarchy
+        category = row.get("category", "") or ""
+        subcategory = row.get("subcategory", "") or ""
+        subsubcategory = row.get("subsubcategory", "") or ""
+        short_name = row.get("short_name", category)
         
         col_name = f"demo_{char_id}"
         
@@ -350,8 +355,8 @@ def create_individual_scatter_plots(merged_df, correlation_results, output_folde
         x = valid_data[col_name]
         y = valid_data["cpc_change_21_25"]
         
-        # Create figure
-        fig, ax = plt.subplots(figsize=(10, 8))
+        # Create figure with extra height for multi-line title (no truncation)
+        fig, ax = plt.subplots(figsize=(14, 10))
         
         # Color based on correlation direction
         color = "#2ca02c" if r_value > 0 else "#d62728"
@@ -369,12 +374,43 @@ def create_individual_scatter_plots(merged_df, correlation_results, output_folde
         # Significance indicator
         sig = "***" if p_value < 0.001 else ("**" if p_value < 0.01 else ("*" if p_value < 0.05 else ""))
         
-        # Truncate long labels for title
-        title_label = label if len(label) <= 60 else label[:57] + "..."
+        # Build multi-line title with all 3 hierarchy levels (no truncation, wrap long lines)
+        def wrap_text(text, max_chars=80):
+            """Wrap text to multiple lines if too long."""
+            if len(text) <= max_chars:
+                return text
+            words = text.split()
+            lines = []
+            current_line = []
+            current_len = 0
+            for word in words:
+                if current_len + len(word) + 1 <= max_chars:
+                    current_line.append(word)
+                    current_len += len(word) + 1
+                else:
+                    if current_line:
+                        lines.append(" ".join(current_line))
+                    current_line = [word]
+                    current_len = len(word)
+            if current_line:
+                lines.append(" ".join(current_line))
+            return "\n    ".join(lines)  # Indent continuation lines
         
-        ax.set_xlabel(f"{title_label} Rate (%)", fontsize=11)
+        title_lines = []
+        if category:
+            title_lines.append(f"Category: {wrap_text(category)}")
+        if subcategory:
+            title_lines.append(f"Subcategory: {wrap_text(subcategory)}")
+        if subsubcategory:
+            title_lines.append(f"Subsubcategory: {wrap_text(subsubcategory)}")
+        title_lines.append(f"(ID: {char_id}) {sig}")
+        
+        full_title = "\n".join(title_lines)
+        
+        # Use short_name for x-axis label (full text, no truncation)
+        ax.set_xlabel(f"{short_name} Rate (%)", fontsize=11)
         ax.set_ylabel("CPC % Change (2021→2025)", fontsize=11)
-        ax.set_title(f"{title_label}\n(ID: {char_id}) {sig}", fontsize=12, fontweight="bold")
+        ax.set_title(full_title, fontsize=10, fontweight="bold", loc="left")
         ax.legend(loc="best", fontsize=10)
         ax.grid(True, alpha=0.3)
         
@@ -390,13 +426,14 @@ def create_individual_scatter_plots(merged_df, correlation_results, output_folde
         direction = "positive" if r_value > 0 else "negative"
         
         info_text = f"Correlation: {strength} {direction}\nn = {len(valid_data)} constituencies"
-        ax.text(0.02, 0.98, info_text, transform=ax.transAxes, fontsize=9,
-                verticalalignment="top", bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5))
+        ax.text(0.98, 0.98, info_text, transform=ax.transAxes, fontsize=9,
+                verticalalignment="top", horizontalalignment="right",
+                bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5))
         
         plt.tight_layout()
         
-        # Create safe filename from characteristics_id and truncated label
-        safe_label = "".join(c if c.isalnum() or c in " _-" else "_" for c in label[:30])
+        # Create safe filename from characteristics_id and truncated short_name
+        safe_label = "".join(c if c.isalnum() or c in " _-" else "_" for c in short_name[:30])
         filename = f"{char_id}_{safe_label}.png"
         filepath = os.path.join(output_folder, filename)
         
@@ -406,11 +443,39 @@ def create_individual_scatter_plots(merged_df, correlation_results, output_folde
     print(f"✅ Saved {len(top_20_by_abs)} individual scatter plots to {output_folder}/")
 
 
-def create_summary_table(correlation_results, output_file="output/correlation_summary.xlsx"):
-    """Save correlation results to Excel."""
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
-    correlation_results.to_excel(output_file, index=False)
-    print(f"✅ Saved correlation summary to {output_file}")
+def create_summary_table(correlation_results, output_file="output/correlation_summary"):
+    """Save correlation results to both Excel and CSV with columns in logical order."""
+    os.makedirs(os.path.dirname(output_file) if os.path.dirname(output_file) else ".", exist_ok=True)
+    
+    # Reorder columns for better readability - 3 category columns clearly separated
+    column_order = [
+        "characteristics_id",
+        "category",
+        "subcategory", 
+        "subsubcategory",
+        "pearson_r",
+        "pearson_p",
+        "spearman_rho",
+        "spearman_p",
+        "n",
+        "significant",
+        "full_name",
+        "short_name"
+    ]
+    
+    # Only include columns that exist
+    existing_columns = [col for col in column_order if col in correlation_results.columns]
+    ordered_results = correlation_results[existing_columns]
+    
+    # Save as Excel
+    excel_file = f"{output_file}.xlsx"
+    ordered_results.to_excel(excel_file, index=False)
+    print(f"✅ Saved correlation summary to {excel_file}")
+    
+    # Save as CSV (with all 3 category columns)
+    csv_file = f"{output_file}.csv"
+    ordered_results.to_csv(csv_file, index=False)
+    print(f"✅ Saved correlation summary to {csv_file}")
 
 
 def main():
@@ -456,17 +521,17 @@ def main():
     print_correlation_details(specific_correlation_results)
     
     # Step 8: Summary of all correlations
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 120)
     print("TOP 10 POSITIVE CORRELATIONS")
-    print("=" * 60)
+    print("=" * 120)
     top_10 = all_correlation_results.nlargest(10, "pearson_r")
-    print(top_10[["category", "pearson_r", "pearson_p", "n"]].to_string(index=False))
+    print(top_10[["characteristics_id", "category", "subcategory", "subsubcategory", "pearson_r", "pearson_p", "n"]].to_string(index=False))
     
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 120)
     print("TOP 10 NEGATIVE CORRELATIONS")
-    print("=" * 60)
+    print("=" * 120)
     bottom_10 = all_correlation_results.nsmallest(10, "pearson_r")
-    print(bottom_10[["category", "pearson_r", "pearson_p", "n"]].to_string(index=False))
+    print(bottom_10[["characteristics_id", "category", "subcategory", "subsubcategory", "pearson_r", "pearson_p", "n"]].to_string(index=False))
     
     # Step 9: Create scatter plots for original 4 categories
     print("\n📊 Creating scatter plots for occupation categories...")
